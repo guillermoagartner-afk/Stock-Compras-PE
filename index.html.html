@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Stock">
+<meta name="theme-color" content="#185FA5">
+<title>Conteo de Stock</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f2f5;color:#1a1a1a;min-height:100vh;overflow-x:hidden}
+.header{background:#185FA5;color:#fff;padding:14px 16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)}
+.header h1{font-size:17px;font-weight:600}
+.header p{font-size:12px;opacity:0.8;margin-top:2px}
+.filtros{background:#fff;padding:10px 12px;border-bottom:0.5px solid #e0e0e0;position:sticky;top:58px;z-index:99}
+.search-box input{width:100%;font-size:15px;padding:10px 14px;border:1.5px solid #ddd;border-radius:10px;outline:none;background:#f8f8f8;margin-bottom:8px}
+.search-box input:focus{border-color:#185FA5;background:#fff}
+.filtros select{width:100%;font-size:13px;padding:8px 10px;border:1.5px solid #ddd;border-radius:10px;background:#f8f8f8;color:#1a1a1a;outline:none;-webkit-appearance:none;margin-bottom:6px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex-shrink:0;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;border:1.5px solid;cursor:pointer}
+.chip.all{border-color:#185FA5;color:#185FA5;background:#fff}.chip.all.active{background:#185FA5;color:#fff}
+.chip.pa{border-color:#A32D2D;color:#A32D2D;background:#fff}.chip.pa.active{background:#A32D2D;color:#fff}
+.chip.pb{border-color:#854F0B;color:#854F0B;background:#fff}.chip.pb.active{background:#854F0B;color:#fff}
+.chip.pc{border-color:#555;color:#555;background:#fff}.chip.pc.active{background:#555;color:#fff}
+.conteo-bar{background:#eef5fc;padding:7px 14px;font-size:12px;display:flex;justify-content:space-between;border-bottom:0.5px solid #d0e4f7}
+.conteo-bar b{color:#185FA5}
+.lista{padding:8px 12px;padding-bottom:90px}
+.rubro-header{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#aaa;padding:12px 2px 5px;margin-bottom:4px}
+.art-card{background:#fff;border-radius:12px;padding:11px 13px;margin-bottom:7px;border:1.5px solid #ebebeb}
+.art-card.ok{border-color:#1D9E75;background:#f6fef9}
+.art-top{display:flex;justify-content:space-between;gap:6px;margin-bottom:5px}
+.art-desc{font-size:14px;font-weight:500;line-height:1.3;flex:1}
+.art-id{font-size:10px;color:#bbb;margin-top:1px;white-space:nowrap}
+.art-meta{display:flex;gap:6px;align-items:center;margin-bottom:7px}
+.bp{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700}
+.bp-a{background:#FCEBEB;color:#791F1F}.bp-b{background:#FAEEDA;color:#633806}.bp-c{background:#eee;color:#555}
+.art-und{font-size:11px;color:#aaa}
+.inp-row{display:flex;align-items:center;gap:8px}
+.inp-row label{font-size:12px;color:#888;white-space:nowrap}
+.qty-wrap{flex:1;display:flex;align-items:center;border:1.5px solid #ddd;border-radius:10px;overflow:hidden;background:#f8f8f8}
+.art-card.ok .qty-wrap{border-color:#1D9E75;background:#fff}
+.qbtn{width:42px;height:42px;border:none;background:transparent;font-size:22px;color:#185FA5;cursor:pointer;font-weight:300;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.qbtn:active{background:#deeeff}
+.qinp{flex:1;border:none;background:transparent;font-size:18px;font-weight:600;text-align:center;outline:none;padding:8px 0;color:#1a1a1a;min-width:0}
+.qinp::-webkit-inner-spin-button{-webkit-appearance:none}
+.clr{padding:6px 10px;border:none;background:transparent;color:#ccc;font-size:16px;cursor:pointer}
+.load-more{text-align:center;padding:14px;color:#185FA5;font-size:14px;font-weight:600;cursor:pointer;background:#fff;border-radius:12px;margin-bottom:8px;border:1.5px dashed #185FA5}
+.empty{text-align:center;padding:40px;color:#aaa;font-size:14px}
+.fab-wrap{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #eee;padding:10px 14px;padding-bottom:max(10px,env(safe-area-inset-bottom));z-index:200}
+.fab{width:100%;padding:14px;font-size:16px;font-weight:700;border:none;border-radius:14px;cursor:pointer;background:#185FA5;color:#fff}
+.fab:disabled{background:#ccc}.fab:active{background:#0c447c}
+.fab-hint{text-align:center;font-size:11px;color:#aaa;margin-top:5px}
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:flex-end}
+.modal-ov.open{display:flex}
+.modal{background:#fff;border-radius:20px 20px 0 0;padding:20px 16px 28px;width:100%;max-height:75vh;overflow-y:auto}
+.modal h3{font-size:17px;font-weight:700;margin-bottom:12px}
+.mrow{display:flex;justify-content:space-between;padding:7px 0;border-bottom:0.5px solid #f0f0f0;font-size:13px}
+.mrow:last-child{border:none}
+.mbtns{display:flex;gap:10px;margin-top:16px}
+.mbtns button{flex:1;padding:14px;border-radius:12px;border:none;font-size:15px;font-weight:600;cursor:pointer}
+.mbcancel{background:#f0f0f0;color:#555}.mbok{background:#185FA5;color:#fff}
+#toast{position:fixed;bottom:85px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;display:none;z-index:500;white-space:nowrap}
+#toast.show{display:block}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📦 Conteo de Stock</h1>
+  <p id="hsub">188 artículos</p>
+</div>
+
+<div class="filtros">
+  <div class="search-box">
+    <input type="search" id="buscar" placeholder="🔍  Buscar artículo..." oninput="filtrar()" autocomplete="off" autocorrect="off" spellcheck="false">
+  </div>
+  <select id="filtro-rubro" onchange="filtrar()">
+    <option value="">Todos los rubros</option>
+    <option value="Aceites, grasas y líquidos alimentarios">Aceites, grasas y líquidos alimentarios</option>
+<option value="Agua / servicio crítico">Agua / servicio crítico</option>
+<option value="Condimentos húmedos / pastas / líquidos listos para uso">Condimentos húmedos / pastas / líquidos listos para uso</option>
+<option value="Conservas / productos estables">Conservas / productos estables</option>
+<option value="Embalaje secundario / rotulado">Embalaje secundario / rotulado</option>
+<option value="Envase primario / material en contacto con alimentos">Envase primario / material en contacto con alimentos</option>
+<option value="Especias, condimentos secos y aditivos de sabor">Especias, condimentos secos y aditivos de sabor</option>
+<option value="Frutos secos / alérgeno relevante">Frutos secos / alérgeno relevante</option>
+<option value="Materia prima alimentaria perecedera / cárnica, avícola, pescado o fiambre">Materia prima alimentaria perecedera / cárnica, avícola, pescado o fiambre</option>
+<option value="Materia prima alimentaria perecedera / lácteo u ovoproducto">Materia prima alimentaria perecedera / lácteo u ovoproducto</option>
+<option value="Materia prima seca / baja humedad">Materia prima seca / baja humedad</option>
+<option value="Salsas, aderezos y productos listos para uso">Salsas, aderezos y productos listos para uso</option>
+<option value="Vegetales frescos con control BPM y tratamiento posterior esperado">Vegetales frescos con control BPM y tratamiento posterior esperado</option>
+<option value="Vegetales procesados / semielaborados">Vegetales procesados / semielaborados</option>
+  </select>
+  <div class="chips">
+    <span class="chip all active" onclick="setP('')">Todos</span>
+    <span class="chip pa" onclick="setP('A')">Pareto A</span>
+    <span class="chip pb" onclick="setP('B')">Pareto B</span>
+    <span class="chip pc" onclick="setP('C')">Pareto C</span>
+  </div>
+</div>
+
+<div class="conteo-bar">
+  <span id="clabel">Cargá el stock de cada artículo</span>
+  <span id="ctotal"></span>
+</div>
+
+<div class="lista" id="lista"></div>
+
+<div class="fab-wrap">
+  <button class="fab" id="fab" onclick="abrirModal()" disabled>Enviar a Google Sheets</button>
+  <div class="fab-hint" id="fhint">Completá al menos un artículo</div>
+</div>
+
+<div class="modal-ov" id="mov">
+  <div class="modal">
+    <h3 id="mtit">Confirmar envío</h3>
+    <div id="mresumen"></div>
+    <div class="mbtns">
+      <button class="mbcancel" onclick="cerrarModal()">Cancelar</button>
+      <button class="mbok" id="mbtn" onclick="enviar()">Enviar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const SHEETS_URL = "https://script.google.com/macros/s/AKfycbx1NhHzAAxh1sr9SGBNFm6r3P2yTLcWtkNnDQFu6N-udDh2sMVtRD_GDHNTVSFcI4vP/exec";
+const ART = [{"id": "10100101", "desc": "Aceite De Girasol por litros", "pareto": "C", "rubro": "Aceites, grasas y líquidos alimentarios", "emp": "Planeta", "und": "L"}, {"id": "10100102", "desc": "Aceite De Oliva por litros", "pareto": "C", "rubro": "Aceites, grasas y líquidos alimentarios", "emp": "Planeta", "und": "L"}, {"id": "10100103", "desc": "Aceite Rociador por unidades", "pareto": "C", "rubro": "Aceites, grasas y líquidos alimentarios", "emp": "Planeta", "und": "unid"}, {"id": "10100201", "desc": "Aceitunas Negra por kilos", "pareto": "B", "rubro": "Conservas / productos estables", "emp": "Planeta", "und": "kg"}, {"id": "10100202", "desc": "Aceitunas Verdes por kilos", "pareto": "B", "rubro": "Conservas / productos estables", "emp": "Planeta", "und": "kg"}, {"id": "10100301", "desc": "Mayonesa por kilos", "pareto": "C", "rubro": "Salsas, aderezos y productos listos para uso", "emp": "Planeta", "und": "kg"}, {"id": "10100302", "desc": "Mostaza por kilos", "pareto": "B", "rubro": "Salsas, aderezos y productos listos para uso", "emp": "Planeta", "und": "kg"}, {"id": "10100303", "desc": "Salsa Barbacoa por kilos", "pareto": "B", "rubro": "Salsas, aderezos y productos listos para uso", "emp": "Planeta", "und": "kg"}, {"id": "10100304", "desc": "Salsa Golf por kilos", "pareto": "B", "rubro": "Salsas, aderezos y productos listos para uso", "emp": "Planeta", "und": "kg"}, {"id": "10100305", "desc": "Salsa Ketchup por kilos", "pareto": "B", "rubro": "Salsas, aderezos y productos listos para uso", "emp": "Planeta", "und": "kg"}, {"id": "10100406", "desc": "Aceto Balsamico por litros", "pareto": "C", "rubro": "Aceites, grasas y líquidos alimentarios", "emp": "Planeta", "und": "L"}, {"id": "10100407", "desc": "Arroz Parboil por kilos", "pareto": "B", "rubro": "Materia prima seca / baja humedad", "emp": "Planeta", "und": "kg"}, {"id": "10100408", "desc": "Azucar Blanca por kilos", "pareto": "C", "rubro": "Materia prima seca / baja humedad", "emp": "Planeta", "und": "kg"}, {"id": "10100409", "desc": "Betacaroteno por litros", "pareto": "B", "rubro": "Materia prima seca / baja humedad", "emp": "Planeta", "und": "L"}, {"id": "10100410", "desc": "Caldo granulado de Carne por kilos", "pareto": "C", "rubro": "Especias, condimentos secos y aditivos de sabor", "emp": "Planeta", "und": "kg"}, {"id": "10100411", "desc": "Caldo granulado de Gallina por kilos", "pareto": "C", "rubro": "Especias, condimentos secos y aditivos de sabor", "emp": "Planeta", "und": "kg"}, {"id": "10100412", "desc": "Caldo granulado de Verduras por kilos", "pareto": "C", "rubro": "Especias, condimentos secos y aditivos de sabor", "emp": "Planeta", "und": "kg"}, {"id": "10100413", "desc": "Ciruela President s/carozo por kilos", "pareto": "B", "rubro": "Conservas / productos estables", "emp": "Planeta", "und": "kg"}, {"id": "10100414", "desc": "Dulce De Batata por kilos", "pareto": "C", "rubro": "Conservas / productos estables", "emp": "Planeta", "und": "kg"}, {"id": "10100415", "desc": "Dulce De Membrillo por kilos", "pareto": "B", "rubro": "Conservas / productos estables", "emp": "Planeta", "und": "kg"}, {"id": "10100416", "desc": "Elastimasa por kilos", "pareto": "B", "rubro": "Materia prima seca / baja humedad", "emp": "Planeta", "und": "kg"}, {"id": "10100417", "desc": "Esencia De Vainilla por litros", "pareto": "B", "rubro": "Especias, condimentos secos y aditivos de sabor", "emp": "Planeta", "und": "L"}, {"id": "10100418", "desc": "Espinaca En Polvo por kilos", "pareto": "C", "rubro": "Vegetales frescos con control BPM y tratamiento posterior esperado", "emp": "Planeta", "und": "kg"}, {"id": "10100419", "desc": "Fecula De Maiz por kilos", "pareto": "C", "rubro": "Materia prima seca / baja humedad", "emp": "Planeta", "und": "kg"}, {"id": "10100420", "desc": "Gelatina Sin Sabor por kilos", "pareto": "C", "rubro": "Materia prima seca / baja humedad", "emp": "Planeta", "und": "kg"}, {"id": "10100421", "desc": "Soja Texturizada por kilos", "pareto": "C", "rubro": "Materia prima seca / baja humedad", "emp": "Planeta", "und": "kg"}, {"id": "10100422", "desc": "Humo Liquido por litros", "pareto": "C", "rubro": "Especias, condimentos secos y aditivos de sabor", "emp": "Planeta", "und": "L"}, {"id": "10100423", "desc": "Jugo De Limon por litros", "pareto": "C", "rubro": "Condimentos húmedos / pastas / líquidos listos para uso", "emp": "Planeta", "und": "L"}, {"id": "10100424", "desc": "Legui por litros", "pareto": "C", "rubro": "Especias, condimentos secos y aditivos de sabor", "emp": "Planeta", "und": "L"}, {"id": "10100425", "desc": "Levadura fresca por kilos", "pareto": "C", "rubro": "Vegetales frescos con control BPM y tratamiento posterior esperado", "emp": "Planeta", "und": "kg"}, {"id": "10100426", "desc": "Nuez Pelada por kilos", "pareto": "B", "rubro": "Frutos secos / alérgeno relevante", "emp": "Planeta", "und": "kg"}, {"id": "10100427", "desc": "Pan Rallado por kilos", "pareto": "C", "rubro": "Materia prima seca / baja humedad", "emp": "Planeta", "und": "kg"}, {"id": "10100428", "desc": "Pasta Chorizo por kilos", "pareto": "C", "rubro": "Materia prima alimentaria perecedera / cárnica, avícola, pescado o fiambre", "emp": "Planeta", "und": "kg"}, {"id": "10100429", "desc": "Propianato De Calcio por kilos", "pareto": "B", "rubro": "Materia prima seca / baja humedad", "emp": "Planeta", "und": "kg"}, {"id": "10100430", "desc": "Pure De Papa Instantaneo por kilos", "pareto": "B", "rubro": "Materia prima seca / baja humedad", "emp": "Planeta", "und": "kg"}, {"id": "10100431", "desc": "Saborizante Hamburguesa por kilos", "pareto": "B", "rubro": "Especias, condimentos secos y aditivos de sabor", "emp": "Planeta", "und": "kg"}, {"id": "10100432", "desc": "Saborizante Jamon por kilos", "pareto": "C", "rubro": "Materia prima alimentaria perecedera / cárnica, avícola, pescado o fiambre", "emp": "Planeta", "und": "kg"}, {"id": "10100433", "desc": "Vino Blanco por litros", "pareto": "C", "rubro": "Aceites, grasas y líquidos alimentarios", "emp": "Planeta", "und": "L"}, {"id": "10100434", "desc": "Vino Tinto  por litros", "pareto": "C", "rubro": "Aceites, grasas y líquidos alimentarios", "emp": "Planeta", "und": "L"}, {"id": "10100435", "desc": "Rebozador por kilos", "pareto": "B", "rubro": "Materia prima seca / baja humedad", "emp": "Planeta", "und": "kg"}, {"id": "10100436", "desc": "Arroz comun por kilos", "pareto": "B", "rubro": "Materia prima seca / baja humedad", "emp": "Planeta", "und": "kg"}, {"id": "10100501", "desc": "Cordero por kilos", "pareto": "C", "rubro": "Materia prima alimentaria perecedera / cárnica, avícola, pescado o fiambre", "emp": "Planeta", "und": "kg"}, {"id": "10100502", "desc": "Cuadril sin tapa por kilos", "pareto": "B", "rubro": "Materia prima alimentaria perecedera / cárnica, avícola, pescado o fiambre", "emp": "Planeta", "und": "kg"}, {"id": "10100503", "desc": "Matambre de Vaca por kilos", "pareto": "B", "rubro": "Materia prima alimentaria perecedera / cárnica, avícola, pescado o fiambre", "emp": "Planeta", "und": "kg"}, {"id": "10100504", "desc": "Matambre de Cerdo por kilos", "pareto": "C", "rubro": "Materia prima alimentaria perecedera / cárnica, avícola, pescado o fiambre", "emp": "Planeta", "und": "kg"}, {"id": "10100505", "desc": "Nalga por kilos", "pareto": "A", "rubro": "Materia prima alimentaria perecedera / cárnica, avícola, pescado o fiambre", "emp": "Planeta", "und": "kg"}, {"id": "10100506", "desc": "Osobuco por kilos", "pareto": "B", "rubro": "Materia prima alimentaria perecedera / cárnica, avícola, pescado o fiambre", "emp": "Planeta", "und": "kg"}, {"id": "10100507", "desc": "Pulpa De Cerdo por kilos", "pareto": "B", "rubro": "Materia prima alimentaria perecedera / cárnica, avícola, pescado o fiambre", "emp": "Planeta", "und": "kg"}, {"id": "10100508", "desc": "Roast Beef por kilos", "pareto": "A", "rubro": "Materia prima alimentaria perecedera / cárnica, avícola, pescado o fiambre", "emp": "Planeta", "und": "kg"}, {"id": "10100509", "desc": "Vacio por kilos", "pareto": "B", "rubro": "Materia prima alimentaria perecedera / cárnica, avícola, pescado o fiambre", "emp": "Planeta", "und": "kg"}, {"id": "10100601", "desc": "Chimichurri por kilos", "pareto": "C", "rubro": "Condimentos húmedos / pastas / líquidos listos para uso", "emp": "Planeta", "und": "kg"}, {"id": "10100602", "desc": "Aji Molido por kilos", "pareto": "C", "rubro": "Especias, condimentos secos y aditivos de sabor", "emp": "Planeta", "und": "kg"}, {"id": "10100603", "desc": "Aji Picante por litros", "pareto": "C", "rubro": "Condimentos húmedos / pastas / líquidos listos para uso", "emp": "Planeta", "und": "L"}, {"id": "10100604", "desc": "Ajo En Pasta por kilos", "pareto": "C", "rubro": "Condimentos húmedos / pastas / líquidos listos para uso", "emp": "Planeta", "und": "kg"}, {"id": "10100605", "desc": "Cebolla De Verdeo Deshidratada por kilos", "pareto": "C", "rubro": "Especias, condimentos secos y aditivos de sabor", "emp": "Planeta", "und": "kg"}, {"id": "10100606", "desc": "Comino Molido por kilos", "pareto": "C", "rubro": "Especias, condimentos secos y aditivos de sabor", "emp": "Planeta", "und": "kg"}, {"id": "10100607", "desc": "Comino Semilla por kilos", "pareto": "C", "rubro": "Especias, condimentos secos y aditivos de sabor", "emp": "Planeta", "und": "kg"}, {"id": "10100608", "desc": "Finas Hierbas por kilos", "pareto": "C", "rubro": "Especias, condimentos secos y aditivos de sabor", "emp": "Planeta", "und": "kg"}, {"id": "10100609", "desc": "Laurel por kilos", "pareto": "C", "rubro": "Especias, condimentos secos y aditivos de sabor", "emp": "Planeta", "und": "kg"}, {"id": "10100610", "desc": "Nuez Moscada por kilos", "pareto": "C", "rubro": "Especias, condimentos secos y aditivos de sabor", "emp": "Planeta", "und": "kg"}, {"id": "10100611", "desc": "Oregano por kilos", "pareto": "C", "rubro": "Especias, condimentos secos y aditivos de sabor", "emp": "Planeta", "und": "kg"}, {"id": "10100612", "desc": "Perejil Deshidratado por kilos", "pareto": "C", "rubro": "Especias, condimentos secos y aditivos de sabor", "emp": "Planeta", "und": "kg"}, {"id": "10100613", "desc": "Pimenton Dulce molido por kilos", "pareto": "C", "rubro": "Especias, condimentos secos y aditivos de sabor", "emp": "Planeta", "und": "kg"}, {"id": "10100614", "desc": "Pimienta Blanca molida por kilos", "pareto": "C", "rubro": "Especias, condimentos secos y aditivos de sabor", "emp": "Planeta", "und": "kg"}, {"id": "10100615", "desc": "Pimienta Cayena Roja molida por kilos", "pareto": "C", "rubro": "Especias, condimentos secos y aditivos de sabor", "emp": "Planeta", "und": "kg"}, {"id": "10100616", "desc": "Pimienta Jamaica molida por kilos", "pareto": "C", "rubro": "Especias, condimentos secos y aditivos de sabor", "emp": "Planeta", "und": "kg"}, {"id": "10100617", "desc": "Pimienta Negra Molida  por kilos", "pareto": "C", "rubro": "Especias, condimentos secos y aditivos de sabor", "emp": "Planeta", "und": "kg"}, {"id": "10100618", "desc": "Provenzal por kilos", "pareto": "C", "rubro": "Salsas, aderezos y productos listos para uso", "emp": "Planeta", "und": "kg"}, {"id": "10100619", "desc": "Romero por kilos", "pareto": "C", "rubro": "Especias, condimentos secos y aditivos de sabor", "emp": "Planeta", "und": "kg"}, {"id": "10100620", "desc": "Sal Fina por kilos", "pareto": "C", "rubro": "Especias, condimentos secos y aditivos de sabor", "emp": "Planeta", "und": "kg"}, {"id": "10100701", "desc": "Anana En Rodajas por kilos escurridos", "pareto": "C", "rubro": "Conservas / productos estables", "emp": "Planeta", "und": "kg"}, {"id": "10100702", "desc": "Anana En Trozo por kilos escurridos", "pareto": "C", "rubro": "Conservas / productos estables", "emp": "Planeta", "und": "kg"}, {"id": "10100703", "desc": "Atun por kilos escurridos", "pareto": "C", "rubro": "Materia prima alimentaria perecedera / cárnica, avícola, pescado o fiambre", "emp": "Planeta", "und": "kg"}, {"id": "10100704", "desc": "Caballa por kilos escurridos", "pareto": "C", "rubro": "Materia prima alimentaria perecedera / cárnica, avícola, pescado o fiambre", "emp": "Planeta", "und": "kg"}, {"id": "10100705", "desc": "Champignones Laminados por kilos escurridos", "pareto": "C", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Planeta", "und": "kg"}, {"id": "10100706", "desc": "Choclo Cremoso  por kilos escurridos", "pareto": "C", "rubro": "Conservas / productos estables", "emp": "Planeta", "und": "kg"}, {"id": "10100707", "desc": "Choclo Grano Amarillo por kilos escurridos", "pareto": "C", "rubro": "Conservas / productos estables", "emp": "Planeta", "und": "kg"}, {"id": "10100708", "desc": "Morron Rojo por kilos escurridos", "pareto": "C", "rubro": "Conservas / productos estables", "emp": "Planeta", "und": "kg"}, {"id": "10100709", "desc": "Palmitos En Trozo por kilos escurridos", "pareto": "C", "rubro": "Conservas / productos estables", "emp": "Planeta", "und": "kg"}, {"id": "10100710", "desc": "Palmitos Enteros por kilos escurridos", "pareto": "C", "rubro": "Conservas / productos estables", "emp": "Planeta", "und": "kg"}, {"id": "10100711", "desc": "Tomate Triturado  por kilos", "pareto": "C", "rubro": "Conservas / productos estables", "emp": "Planeta", "und": "kg"}, {"id": "10100801", "desc": "Paleta cocida por kilos", "pareto": "A", "rubro": "Materia prima alimentaria perecedera / cárnica, avícola, pescado o fiambre", "emp": "Planeta", "und": "kg"}, {"id": "10100802", "desc": "Jamon Crudo por kilos", "pareto": "C", "rubro": "Materia prima alimentaria perecedera / cárnica, avícola, pescado o fiambre", "emp": "Planeta", "und": "kg"}, {"id": "10100803", "desc": "Panceta Ahumada por kilos", "pareto": "B", "rubro": "Materia prima alimentaria perecedera / cárnica, avícola, pescado o fiambre", "emp": "Planeta", "und": "kg"}, {"id": "10100804", "desc": "Salame Tipo Español por kilos", "pareto": "B", "rubro": "Materia prima alimentaria perecedera / cárnica, avícola, pescado o fiambre", "emp": "Planeta", "und": "kg"}, {"id": "10100805", "desc": "Salchicha Tipo Alemana por kilos", "pareto": "C", "rubro": "Materia prima alimentaria perecedera / cárnica, avícola, pescado o fiambre", "emp": "Planeta", "und": "kg"}, {"id": "10100901", "desc": "Grasa Vacuna Hornito por kilos", "pareto": "A", "rubro": "Aceites, grasas y líquidos alimentarios", "emp": "Planeta", "und": "kg"}, {"id": "10100902", "desc": "Grasa Bovina Bovigras por kilos", "pareto": "A", "rubro": "Aceites, grasas y líquidos alimentarios", "emp": "Planeta", "und": "kg"}, {"id": "10100903", "desc": "Manteca por kilos", "pareto": "B", "rubro": "Materia prima alimentaria perecedera / lácteo u ovoproducto", "emp": "Planeta", "und": "kg"}, {"id": "10100904", "desc": "Margarina para reposteria SUPER por kilos", "pareto": "A", "rubro": "Aceites, grasas y líquidos alimentarios", "emp": "Planeta", "und": "kg"}, {"id": "10100905", "desc": "Margarina para reposteria SUAVE por kilos", "pareto": "A", "rubro": "Aceites, grasas y líquidos alimentarios", "emp": "Planeta", "und": "kg"}, {"id": "10100906", "desc": "Margarina para reposteria PARATAPAS por kilos", "pareto": "A", "rubro": "Aceites, grasas y líquidos alimentarios", "emp": "Planeta", "und": "kg"}, {"id": "10100907", "desc": "Margarina para reposteria BOVIGRAS por kilos", "pareto": "A", "rubro": "Aceites, grasas y líquidos alimentarios", "emp": "Planeta", "und": "kg"}, {"id": "10101001", "desc": "Harina Leudante por kilos", "pareto": "C", "rubro": "Materia prima seca / baja humedad", "emp": "Planeta", "und": "kg"}, {"id": "10101002", "desc": "Harina Tapera por kilos", "pareto": "A", "rubro": "Materia prima seca / baja humedad", "emp": "Planeta", "und": "kg"}, {"id": "10101003", "desc": "Semola Candeal por kilos", "pareto": "B", "rubro": "Materia prima seca / baja humedad", "emp": "Planeta", "und": "kg"}, {"id": "10101004", "desc": "Semolin Extrarefinado por kilos", "pareto": "A", "rubro": "Materia prima seca / baja humedad", "emp": "Planeta", "und": "kg"}, {"id": "10101101", "desc": "Clara De Huevo por kilos", "pareto": "B", "rubro": "Materia prima alimentaria perecedera / lácteo u ovoproducto", "emp": "Planeta", "und": "kg"}, {"id": "10101102", "desc": "Huevo En Barra por kilos", "pareto": "B", "rubro": "Materia prima alimentaria perecedera / lácteo u ovoproducto", "emp": "Planeta", "und": "kg"}, {"id": "10101103", "desc": "Huevo Liquido por litros", "pareto": "B", "rubro": "Materia prima alimentaria perecedera / lácteo u ovoproducto", "emp": "Planeta", "und": "L"}, {"id": "10101104", "desc": "Huevos Frescos por Docena", "pareto": "C", "rubro": "Materia prima alimentaria perecedera / lácteo u ovoproducto", "emp": "Planeta", "und": "unid"}, {"id": "10101201", "desc": "Crema De Leche por kilos", "pareto": "C", "rubro": "Materia prima alimentaria perecedera / lácteo u ovoproducto", "emp": "Planeta", "und": "kg"}, {"id": "10101202", "desc": "Leche por litros", "pareto": "B", "rubro": "Materia prima alimentaria perecedera / lácteo u ovoproducto", "emp": "Planeta", "und": "L"}, {"id": "10101203", "desc": "Queso Cheddar Barra por kilos", "pareto": "B", "rubro": "Materia prima alimentaria perecedera / lácteo u ovoproducto", "emp": "Planeta", "und": "kg"}, {"id": "10101204", "desc": "Queso Cheddar Pouch liquido por kilos", "pareto": "B", "rubro": "Materia prima alimentaria perecedera / lácteo u ovoproducto", "emp": "Planeta", "und": "kg"}, {"id": "10101205", "desc": "Queso Crema Pouch liquido por kilos", "pareto": "B", "rubro": "Materia prima alimentaria perecedera / lácteo u ovoproducto", "emp": "Planeta", "und": "kg"}, {"id": "10101206", "desc": "Queso Cremoso por kilos", "pareto": "B", "rubro": "Materia prima alimentaria perecedera / lácteo u ovoproducto", "emp": "Planeta", "und": "kg"}, {"id": "10101207", "desc": "Queso Danbo por kilos", "pareto": "B", "rubro": "Materia prima alimentaria perecedera / lácteo u ovoproducto", "emp": "Planeta", "und": "kg"}, {"id": "10101208", "desc": "Queso Mozzarella por kilos", "pareto": "A", "rubro": "Materia prima alimentaria perecedera / lácteo u ovoproducto", "emp": "Planeta", "und": "kg"}, {"id": "10101209", "desc": "Queso Provolone por kilos", "pareto": "B", "rubro": "Materia prima alimentaria perecedera / lácteo u ovoproducto", "emp": "Planeta", "und": "kg"}, {"id": "10101210", "desc": "Queso Rallado por kilos", "pareto": "C", "rubro": "Materia prima alimentaria perecedera / lácteo u ovoproducto", "emp": "Planeta", "und": "kg"}, {"id": "10101211", "desc": "Queso Roquefort por kilos", "pareto": "B", "rubro": "Materia prima alimentaria perecedera / lácteo u ovoproducto", "emp": "Planeta", "und": "kg"}, {"id": "10101212", "desc": "Queso Sardo por kilos", "pareto": "B", "rubro": "Materia prima alimentaria perecedera / lácteo u ovoproducto", "emp": "Planeta", "und": "kg"}, {"id": "10101213", "desc": "Ricota por kilos", "pareto": "B", "rubro": "Materia prima alimentaria perecedera / lácteo u ovoproducto", "emp": "Planeta", "und": "kg"}, {"id": "10101301", "desc": "Camaron Pelado Cocido  por kilos", "pareto": "C", "rubro": "Materia prima alimentaria perecedera / cárnica, avícola, pescado o fiambre", "emp": "Planeta", "und": "kg"}, {"id": "10101302", "desc": "Penca De Salmon por kilos", "pareto": "C", "rubro": "Materia prima alimentaria perecedera / cárnica, avícola, pescado o fiambre", "emp": "Planeta", "und": "kg"}, {"id": "10101401", "desc": "Filet de pechuga de pollo por kilos", "pareto": "C", "rubro": "Materia prima alimentaria perecedera / cárnica, avícola, pescado o fiambre", "emp": "Planeta", "und": "kg"}, {"id": "10101501", "desc": "Acelga Fresca por kilos", "pareto": "B", "rubro": "Vegetales frescos con control BPM y tratamiento posterior esperado", "emp": "Planeta", "und": "kg"}, {"id": "10101502", "desc": "Albahaca Fresca por kilos", "pareto": "C", "rubro": "Vegetales frescos con control BPM y tratamiento posterior esperado", "emp": "Planeta", "und": "kg"}, {"id": "10101503", "desc": "Apio Fresco por kilos", "pareto": "C", "rubro": "Vegetales frescos con control BPM y tratamiento posterior esperado", "emp": "Planeta", "und": "kg"}, {"id": "10101504", "desc": "Berenjena Fresca por kilos", "pareto": "C", "rubro": "Vegetales frescos con control BPM y tratamiento posterior esperado", "emp": "Planeta", "und": "kg"}, {"id": "10101505", "desc": "Cebolla por kilos", "pareto": "B", "rubro": "Vegetales frescos con control BPM y tratamiento posterior esperado", "emp": "Planeta", "und": "kg"}, {"id": "10101506", "desc": "Cebolla De Verdeo fresca por kilos", "pareto": "B", "rubro": "Vegetales frescos con control BPM y tratamiento posterior esperado", "emp": "Planeta", "und": "kg"}, {"id": "10101507", "desc": "Espinaca por kilos", "pareto": "C", "rubro": "Vegetales frescos con control BPM y tratamiento posterior esperado", "emp": "Planeta", "und": "kg"}, {"id": "10101508", "desc": "Morron Rojo Fresco por kilos", "pareto": "C", "rubro": "Vegetales frescos con control BPM y tratamiento posterior esperado", "emp": "Planeta", "und": "kg"}, {"id": "10101509", "desc": "Morron Verde Fresco por kilos", "pareto": "C", "rubro": "Vegetales frescos con control BPM y tratamiento posterior esperado", "emp": "Planeta", "und": "kg"}, {"id": "10101510", "desc": "Papa por kilos", "pareto": "C", "rubro": "Vegetales frescos con control BPM y tratamiento posterior esperado", "emp": "Planeta", "und": "kg"}, {"id": "10101511", "desc": "Perejil Fresco por kilos", "pareto": "C", "rubro": "Vegetales frescos con control BPM y tratamiento posterior esperado", "emp": "Planeta", "und": "kg"}, {"id": "10101512", "desc": "Tomate Fresco por kilos", "pareto": "C", "rubro": "Vegetales frescos con control BPM y tratamiento posterior esperado", "emp": "Planeta", "und": "kg"}, {"id": "10101513", "desc": "Zanahoria frsca por kilos", "pareto": "C", "rubro": "Vegetales frescos con control BPM y tratamiento posterior esperado", "emp": "Planeta", "und": "kg"}, {"id": "10101514", "desc": "Zapallo Anco fresco por kilos", "pareto": "C", "rubro": "Vegetales frescos con control BPM y tratamiento posterior esperado", "emp": "Planeta", "und": "kg"}, {"id": "10101515", "desc": "Zuchini fresco por kilos", "pareto": "C", "rubro": "Vegetales frescos con control BPM y tratamiento posterior esperado", "emp": "Planeta", "und": "kg"}, {"id": "10101601", "desc": "Agua Potable", "pareto": "C", "rubro": "Agua / servicio crítico", "emp": "Planeta", "und": "unid"}, {"id": "10200101", "desc": "Bandeja 107 Canelones por unidades", "pareto": "C", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200102", "desc": "Bandeja 628 Pizzas por unidades", "pareto": "C", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200103", "desc": "Bandeja Carton Nº4 19X15 Pasteles por unidades", "pareto": "C", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200104", "desc": "Bandeja F100 Con Tapa Lasagna por unidades", "pareto": "C", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200105", "desc": "Oblea 629 Panqueques por unidades", "pareto": "C", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200106", "desc": "Fondo Ravioles B/N 26,2X18X3 por unidades", "pareto": "B", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200107", "desc": "Tapas Impr Ravioles Azul 27X18X3 por unidades", "pareto": "B", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200108", "desc": "Tapas Impr Ravioles Rojo 27X18X3 por unidades", "pareto": "B", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200109", "desc": "Tapas Impr Ravioles Verde 27X18X3 por unidades", "pareto": "B", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200110", "desc": "Tapas Impr Sorrentinos 27X18X3 por unidades", "pareto": "B", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200201", "desc": "Bolsa Cristal Arranque 30 X 40 por unidades", "pareto": "C", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200202", "desc": "Bolsa Cristal 60 X 80 por unidades", "pareto": "B", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200203", "desc": "Bolsa Cristal 60 X 90 por unidades", "pareto": "C", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200204", "desc": "Bolsas 20X35 Lisa tallarines por unidades", "pareto": "C", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200205", "desc": "Bolsas 60X120 Baston Tallarines por unidades", "pareto": "C", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200206", "desc": "Bolsas Copetin por unidades", "pareto": "C", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200207", "desc": "Bolsas Tapas Freir 15 por unidades", "pareto": "B", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200208", "desc": "Bolsas Tapas Horno 15 por unidades", "pareto": "B", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200209", "desc": "Bolsas Tapas Horno Freir 15 por unidades", "pareto": "B", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200210", "desc": "Bolsas Fucchiles por unidades", "pareto": "C", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200211", "desc": "Bolsas Impresas Joselito 50X50X30 masa lasagna por unidades", "pareto": "C", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200212", "desc": "Bolsas Ñoquis por unidades", "pareto": "B", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200213", "desc": "Bolsas Panqueques por unidades", "pareto": "C", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200214", "desc": "Bolsas Pascualinas Con Logo 35x45 por unidades", "pareto": "B", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200215", "desc": "Bolsas Pascualinas Sin Logo 35x45 por unidades", "pareto": "C", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200216", "desc": "Bolsas Pizzas por unidades", "pareto": "C", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200217", "desc": "Bolsas de Arranque 18x8 Queso Rallado por unidades", "pareto": "C", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200218", "desc": "Bolsas Tallarines por unidades", "pareto": "A", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200219", "desc": "Bolsas Tapas Pasteles chicos por unidades", "pareto": "C", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200220", "desc": "Bolsas Torteletis por unidades", "pareto": "C", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200221", "desc": "Rollo Tapas Freir 13 x 12 unidades por kilos", "pareto": "A", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "kg"}, {"id": "10200222", "desc": "Rollo Tapas Horno 13 x 12 unidades por kilos", "pareto": "A", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "kg"}, {"id": "10200223", "desc": "Bolsas Tapas Pasteles grandes por unidades", "pareto": "C", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200301", "desc": "Caja Congelado 419 X 288 X 88 por unidades", "pareto": "B", "rubro": "Embalaje secundario / rotulado", "emp": "Joselito", "und": "unid"}, {"id": "10200302", "desc": "Caja Congelado 450 X 280 X 123 por unidades", "pareto": "B", "rubro": "Embalaje secundario / rotulado", "emp": "Joselito", "und": "unid"}, {"id": "10200303", "desc": "Caja 6 unidades pasteles por unidades", "pareto": "B", "rubro": "Embalaje secundario / rotulado", "emp": "Joselito", "und": "unid"}, {"id": "10200401", "desc": "Cinta Embalaje 48X90 con logo Joselito por unidades", "pareto": "C", "rubro": "Embalaje secundario / rotulado", "emp": "Joselito", "und": "unid"}, {"id": "10200402", "desc": "Etiquetas 9116-500 por unidades", "pareto": "C", "rubro": "Embalaje secundario / rotulado", "emp": "Joselito", "und": "unid"}, {"id": "10200403", "desc": "Etiquetas 9130-500 por unidades", "pareto": "C", "rubro": "Embalaje secundario / rotulado", "emp": "Joselito", "und": "unid"}, {"id": "10200404", "desc": "Etiquetas 9141-500 por unidades", "pareto": "C", "rubro": "Embalaje secundario / rotulado", "emp": "Joselito", "und": "unid"}, {"id": "10200405", "desc": "Etiquetas 50x28 blancas por unidades", "pareto": "C", "rubro": "Embalaje secundario / rotulado", "emp": "Joselito", "und": "unid"}, {"id": "10200406", "desc": "Etiquetas En Rollo Tallarines Espinaca por unidades", "pareto": "C", "rubro": "Embalaje secundario / rotulado", "emp": "Joselito", "und": "unid"}, {"id": "10200407", "desc": "Etiquetas Pasteles de Membrillo por unidades", "pareto": "C", "rubro": "Embalaje secundario / rotulado", "emp": "Joselito", "und": "unid"}, {"id": "10200408", "desc": "Etiquetas Tapas Pasteles por unidades", "pareto": "C", "rubro": "Embalaje secundario / rotulado", "emp": "Joselito", "und": "unid"}, {"id": "10200409", "desc": "Film 38 Cm por kilos", "pareto": "C", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "kg"}, {"id": "10200410", "desc": "Film 45 Cm por kilos", "pareto": "C", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "kg"}, {"id": "10200411", "desc": "Laminas A/D Sobre Cristal pasteles por kilos", "pareto": "C", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "kg"}, {"id": "10200412", "desc": "Laminas Alta Densidad 40X50 bandejas empanadas por kilos", "pareto": "B", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "kg"}, {"id": "10200413", "desc": "Papel Bioxido Cortado 18X25 por unidades", "pareto": "B", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200414", "desc": "Papel Paraf Ravilolero por unidades", "pareto": "B", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200415", "desc": "Potes Salsa 1/2 con tapa por unidades", "pareto": "C", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200416", "desc": "Potes Salsa 1/4 con tapa por unidades", "pareto": "C", "rubro": "Envase primario / material en contacto con alimentos", "emp": "Joselito", "und": "unid"}, {"id": "10200417", "desc": "Etiquetas 50x28 rojas por unidades", "pareto": "C", "rubro": "Embalaje secundario / rotulado", "emp": "Joselito", "und": "unid"}, {"id": "20200501", "desc": "Morron Rojo cubeteado por kilos", "pareto": "C", "rubro": "Vegetales procesados / semielaborados", "emp": "Planeta", "und": "kg"}, {"id": "20201502", "desc": "Cebolla Cubeteada por kilos", "pareto": "C", "rubro": "Vegetales procesados / semielaborados", "emp": "Planeta", "und": "kg"}];
+
+let stocks = {};
+let paretoF = "";
+let artsFiltrados = [...ART];
+let paginaActual = 0;
+const POR_PAGINA = 25;
+
+function setP(p) {
+  paretoF = p;
+  document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+  const m = {"":"all","A":"pa","B":"pb","C":"pc"};
+  document.querySelector(".chip."+m[p]).classList.add("active");
+  filtrar();
+}
+
+function filtrar() {
+  const bus = (document.getElementById("buscar").value||"").toLowerCase().trim();
+  const rubro = document.getElementById("filtro-rubro").value;
+  artsFiltrados = ART.filter(a => {
+    if(paretoF && a.pareto !== paretoF) return false;
+    if(rubro && a.rubro !== rubro) return false;
+    if(bus && !a.desc.toLowerCase().includes(bus) && !a.id.includes(bus)) return false;
+    return true;
+  });
+  paginaActual = 0;
+  document.getElementById("lista").innerHTML = "";
+  renderPagina();
+}
+
+function renderPagina() {
+  const lista = document.getElementById("lista");
+  const inicio = paginaActual * POR_PAGINA;
+  const fin = inicio + POR_PAGINA;
+  const lote = artsFiltrados.slice(inicio, fin);
+
+  if(inicio === 0 && lote.length === 0) {
+    lista.innerHTML = '<div class="empty">Sin artículos que coincidan</div>';
+    return;
+  }
+
+  // Agrupar lote por rubro
+  const grupos = {};
+  lote.forEach(a => {
+    const r = a.rubro || "Sin rubro";
+    if(!grupos[r]) grupos[r] = [];
+    grupos[r].push(a);
+  });
+
+  // Quitar botón "cargar más" si existía
+  const prev = lista.querySelector(".load-more");
+  if(prev) prev.remove();
+
+  Object.entries(grupos).forEach(([rubro, grupo]) => {
+    // Evitar duplicar encabezado de rubro si ya existe
+    const rubroId = "rh-" + rubro.replace(/[^a-z0-9]/gi,"_");
+    if(!document.getElementById(rubroId)) {
+      const rh = document.createElement("div");
+      rh.className = "rubro-header";
+      rh.id = rubroId;
+      rh.textContent = rubro;
+      lista.appendChild(rh);
+    }
+    grupo.forEach(a => {
+      if(!document.getElementById("card-"+a.id)) {
+        lista.appendChild(crearCard(a));
+      }
+    });
+  });
+
+  // Botón cargar más
+  if(fin < artsFiltrados.length) {
+    const btn = document.createElement("div");
+    btn.className = "load-more";
+    btn.textContent = "Cargar más (" + (artsFiltrados.length - fin) + " restantes)";
+    btn.onclick = () => { paginaActual++; renderPagina(); };
+    lista.appendChild(btn);
+  }
+
+  paginaActual++;
+}
+
+function crearCard(a) {
+  const val = stocks[a.id] !== undefined ? stocks[a.id] : "";
+  const ok = val !== "";
+  const div = document.createElement("div");
+  div.className = "art-card" + (ok?" ok":"");
+  div.id = "card-"+a.id;
+  const bpCls = "bp-"+(a.pareto||"c").toLowerCase();
+  div.innerHTML = `
+    <div class="art-top">
+      <div class="art-desc">${a.desc}</div>
+      <div class="art-id">${a.id}</div>
+    </div>
+    <div class="art-meta">
+      <span class="bp ${bpCls}">${a.pareto||"—"}</span>
+      <span class="art-und">${a.und||"unid"}</span>
+    </div>
+    <div class="inp-row">
+      <label>Stock:</label>
+      <div class="qty-wrap">
+        <button class="qbtn" onclick="cambiar('${a.id}',-1)">−</button>
+        <input class="qinp" type="number" inputmode="decimal" min="0" step="0.1"
+          id="q-${a.id}" value="${val}" placeholder="0"
+          oninput="set('${a.id}',this.value)">
+        <button class="qbtn" onclick="cambiar('${a.id}',1)">+</button>
+      </div>
+      <button class="clr" id="clr-${a.id}" onclick="limpiar('${a.id}')" style="display:${ok?'block':'none'}">✕</button>
+    </div>`;
+  return div;
+}
+
+function set(id, val) {
+  const n = parseFloat(val);
+  if(val===""||val===null) { delete stocks[id]; }
+  else if(!isNaN(n)&&n>=0) { stocks[id]=n; }
+  const card=document.getElementById("card-"+id);
+  const ok=stocks[id]!==undefined;
+  if(card)card.className="art-card"+(ok?" ok":"");
+  const clr=document.getElementById("clr-"+id);
+  if(clr)clr.style.display=ok?"block":"none";
+  actualizarConteo();
+}
+
+function cambiar(id, d) {
+  const inp=document.getElementById("q-"+id);
+  const n=Math.max(0,(parseFloat(inp.value)||0)+d);
+  inp.value=n; set(id,n);
+}
+
+function limpiar(id) {
+  const inp=document.getElementById("q-"+id);
+  if(inp)inp.value="";
+  delete stocks[id];
+  const card=document.getElementById("card-"+id);
+  if(card)card.className="art-card";
+  const clr=document.getElementById("clr-"+id);
+  if(clr)clr.style.display="none";
+  actualizarConteo();
+}
+
+function actualizarConteo() {
+  const n=Object.keys(stocks).length;
+  document.getElementById("clabel").innerHTML=n===0?"Cargá el stock de cada artículo":"<b>"+n+"</b> artículo"+(n>1?"s":"")+" cargado"+(n>1?"s":"");
+  document.getElementById("ctotal").textContent=n>0?"de "+ART.length+" totales":"";
+  const fab=document.getElementById("fab");
+  fab.disabled=n===0;
+  document.getElementById("fhint").textContent=n>0?n+" artículo"+(n>1?"s":"")+" listo"+(n>1?"s":"")+" para enviar":"Completá al menos un artículo";
+}
+
+function abrirModal() {
+  const ents=Object.entries(stocks);
+  document.getElementById("mtit").textContent="Confirmar envío ("+ents.length+" artículo"+(ents.length>1?"s":"")+")";
+  document.getElementById("mresumen").innerHTML=ents.map(([id,qty])=>{
+    const a=ART.find(x=>x.id===id);
+    return`<div class="mrow"><span style="flex:1;margin-right:8px">${a?a.desc:id}</span><b style="color:#185FA5">${qty} ${a?a.und||"":""}</b></div>`;
+  }).join("");
+  document.getElementById("mov").classList.add("open");
+}
+
+function cerrarModal() {
+  document.getElementById("mov").classList.remove("open");
+}
+
+async function enviar() {
+  const btn=document.getElementById("mbtn");
+  btn.textContent="Enviando..."; btn.disabled=true;
+  let ok=0,err=0;
+  for(const [id,stock] of Object.entries(stocks)) {
+    try {
+      const r=await fetch(`${SHEETS_URL}?action=setStock&id=${encodeURIComponent(id)}&stock=${stock}`);
+      const j=await r.json();
+      if(j.ok)ok++; else err++;
+    } catch(e){err++;}
+  }
+  cerrarModal();
+  if(err===0){
+    stocks={};
+    filtrar();
+    toast("✓ Stock enviado: "+ok+" artículos actualizados");
+  } else if(ok>0){
+    toast("⚠ "+ok+" OK, "+err+" con error");
+  } else {
+    toast("✗ Sin conexión. Verificá el internet.");
+  }
+  btn.textContent="Enviar"; btn.disabled=false;
+}
+
+function toast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"),3500);
+}
+
+// Scroll infinito
+window.addEventListener("scroll",()=>{
+  if((window.innerHeight+window.scrollY)>=document.body.offsetHeight-200){
+    const btn=document.querySelector(".load-more");
+    if(btn)btn.click();
+  }
+});
+
+// Arrancar
+filtrar();
+</script>
+</body>
+</html>
